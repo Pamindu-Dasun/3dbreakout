@@ -6,24 +6,24 @@
   'use strict';
 
   // ─── Constants ───────────────────────────────────────────────
-  const FIELD_W = 16;
+  const FIELD_W = 40;
   const FIELD_H = 22;
   const WALL_THICKNESS = 0.4;
 
-  const GRID_COLS = 20;
+  const GRID_COLS = 53;
   const GRID_ROWS = 7;
   const BLOCK_SIZE = 0.58;
   const BLOCK_DEPTH = 0.28;
   const BLOCK_SPACING = 0.70;
 
-  const PADDLE_W = 2.8;
+  const PADDLE_W = 3.5;
   const PADDLE_H = 0.35;
   const PADDLE_D = 0.55;
   const PADDLE_Y = -FIELD_H / 2 + 1.5;
 
-  const BALL_RADIUS = 0.22;
-  const BALL_SPEED_INITIAL = 10;
-  const BALL_SPEED_MAX = 16;
+  const BALL_RADIUS = 0.24;
+  const BALL_SPEED_INITIAL = 12;
+  const BALL_SPEED_MAX = 20;
   const BALL_SPEED_INCREMENT = 0.3;
 
   const MAX_LIVES = 3;
@@ -44,10 +44,10 @@
   const SPARKLE_LIFE = 0.6;
 
   // Camera base position
-  const CAM_BASE = new THREE.Vector3(0, -2, 22);
+  const CAM_BASE = new THREE.Vector3(0, -3, 52);
   const CAM_LOOKAT_BASE = new THREE.Vector3(0, 1, 0);
-  const PARALLAX_STRENGTH_X = 4.0;
-  const PARALLAX_STRENGTH_Y = 2.5;
+  const PARALLAX_STRENGTH_X = 10.0;
+  const PARALLAX_STRENGTH_Y = 4.0;
 
   // ─── State ───────────────────────────────────────────────────
   let gameState = 'WAITING'; // WAITING | PLAYING | GAME_OVER | WIN
@@ -86,9 +86,9 @@
   // ─── Three.js Setup ─────────────────────────────────────────
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(GITHUB_BG);
-  scene.fog = new THREE.Fog(GITHUB_BG, 28, 45);
+  scene.fog = new THREE.Fog(GITHUB_BG, 45, 75);
 
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
   camera.position.copy(CAM_BASE);
   camera.lookAt(CAM_LOOKAT_BASE);
 
@@ -103,26 +103,26 @@
   scene.add(ambientLight);
 
   const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  mainLight.position.set(5, 15, 20);
+  mainLight.position.set(10, 20, 30);
   mainLight.castShadow = true;
-  mainLight.shadow.mapSize.set(1024, 1024);
-  mainLight.shadow.camera.left = -12;
-  mainLight.shadow.camera.right = 12;
-  mainLight.shadow.camera.top = 15;
-  mainLight.shadow.camera.bottom = -15;
+  mainLight.shadow.mapSize.set(2048, 2048);
+  mainLight.shadow.camera.left = -25;
+  mainLight.shadow.camera.right = 25;
+  mainLight.shadow.camera.top = 20;
+  mainLight.shadow.camera.bottom = -20;
   scene.add(mainLight);
 
   const rimLight = new THREE.DirectionalLight(0x40c463, 0.3);
-  rimLight.position.set(-8, 5, -10);
+  rimLight.position.set(-15, 5, -10);
   scene.add(rimLight);
 
-  const bottomLight = new THREE.PointLight(0x58a6ff, 0.4, 30);
+  const bottomLight = new THREE.PointLight(0x58a6ff, 0.4, 60);
   bottomLight.position.set(0, PADDLE_Y - 2, 5);
   scene.add(bottomLight);
 
   // ─── Playing Field ──────────────────────────────────────────
   // Floor
-  const floorGeo = new THREE.PlaneGeometry(FIELD_W + 4, FIELD_H + 8);
+  const floorGeo = new THREE.PlaneGeometry(FIELD_W + 10, FIELD_H + 12);
   const floorMat = new THREE.MeshStandardMaterial({
     color: 0x0d1117,
     roughness: 0.9,
@@ -134,7 +134,7 @@
   scene.add(floor);
 
   // Subtle grid on floor
-  const gridHelper = new THREE.GridHelper(30, 30, 0x161b22, 0x161b22);
+  const gridHelper = new THREE.GridHelper(60, 40, 0x161b22, 0x161b22);
   gridHelper.rotation.x = Math.PI / 2;
   gridHelper.position.z = -0.45;
   scene.add(gridHelper);
@@ -165,34 +165,19 @@
   const blocks = [];
   const blockGeo = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_DEPTH);
 
-  // Generate commit-graph-like data
+  // Personal contribution data for Pamindu-Dasun
+  const PAMINDU_DATA = [
+    "00000000000000000000000000000000000000000000000000000",
+    "00000000000000000000000000100000000000000000000000000",
+    "00000000000000000000000000000000000000000000002141000",
+    "00000000000000000000000000000000000000000000000000000",
+    "00000000000000000000000000000000000000000000000000002",
+    "00000000000000000000000000000000010000000000001000000",
+    "00000000000000000000000000000000010000000000000000002"
+  ].map(row => row.split('').map(Number));
+
   function generateCommitData() {
-    const data = [];
-    for (let row = 0; row < GRID_ROWS; row++) {
-      data[row] = [];
-      for (let col = 0; col < GRID_COLS; col++) {
-        // Weekday bias: rows 1-5 (Mon-Fri) have more activity
-        const isWeekday = row >= 1 && row <= 5;
-        const activityBias = isWeekday ? 0.7 : 0.35;
-
-        // Create "streaks" — some columns (weeks) are more active
-        const weekActivity = Math.sin(col * 0.5 + 2) * 0.3 + 0.5 +
-          Math.sin(col * 1.3) * 0.2;
-
-        const chance = activityBias * weekActivity;
-        if (Math.random() < chance) {
-          // Weighted level distribution: more light, fewer dark
-          const r = Math.random();
-          if (r < 0.35) data[row][col] = 1;
-          else if (r < 0.60) data[row][col] = 2;
-          else if (r < 0.82) data[row][col] = 3;
-          else data[row][col] = 4;
-        } else {
-          data[row][col] = 0;
-        }
-      }
-    }
-    return data;
+    return PAMINDU_DATA;
   }
 
   let commitData;
