@@ -6,24 +6,24 @@
   'use strict';
 
   // ─── Constants ───────────────────────────────────────────────
-  const FIELD_W = 40;
+  const FIELD_W = 18;
   const FIELD_H = 22;
   const WALL_THICKNESS = 0.4;
 
-  const GRID_COLS = 53;
+  const GRID_COLS = 13;
   const GRID_ROWS = 7;
   const BLOCK_SIZE = 0.58;
   const BLOCK_DEPTH = 0.28;
   const BLOCK_SPACING = 0.70;
 
-  const PADDLE_W = 3.5;
+  const PADDLE_W = 3.0;
   const PADDLE_H = 0.35;
   const PADDLE_D = 0.55;
   const PADDLE_Y = -FIELD_H / 2 + 1.5;
 
-  const BALL_RADIUS = 0.24;
-  const BALL_SPEED_INITIAL = 12;
-  const BALL_SPEED_MAX = 20;
+  const BALL_RADIUS = 0.22;
+  const BALL_SPEED_INITIAL = 10;
+  const BALL_SPEED_MAX = 18;
   const BALL_SPEED_INCREMENT = 0.3;
 
   const MAX_LIVES = 3;
@@ -44,10 +44,10 @@
   const SPARKLE_LIFE = 0.6;
 
   // Camera base position
-  const CAM_BASE = new THREE.Vector3(0, -3, 52);
+  const CAM_BASE = new THREE.Vector3(0, -2, 24);
   const CAM_LOOKAT_BASE = new THREE.Vector3(0, 1, 0);
-  const PARALLAX_STRENGTH_X = 10.0;
-  const PARALLAX_STRENGTH_Y = 4.0;
+  const PARALLAX_STRENGTH_X = 5.0;
+  const PARALLAX_STRENGTH_Y = 3.0;
 
   // ─── State ───────────────────────────────────────────────────
   let gameState = 'WAITING'; // WAITING | PLAYING | GAME_OVER | WIN
@@ -86,9 +86,9 @@
   // ─── Three.js Setup ─────────────────────────────────────────
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(GITHUB_BG);
-  scene.fog = new THREE.Fog(GITHUB_BG, 45, 75);
+  scene.fog = new THREE.Fog(GITHUB_BG, 30, 50);
 
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 150);
   camera.position.copy(CAM_BASE);
   camera.lookAt(CAM_LOOKAT_BASE);
 
@@ -103,26 +103,26 @@
   scene.add(ambientLight);
 
   const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  mainLight.position.set(10, 20, 30);
+  mainLight.position.set(5, 15, 20);
   mainLight.castShadow = true;
-  mainLight.shadow.mapSize.set(2048, 2048);
-  mainLight.shadow.camera.left = -25;
-  mainLight.shadow.camera.right = 25;
-  mainLight.shadow.camera.top = 20;
-  mainLight.shadow.camera.bottom = -20;
+  mainLight.shadow.mapSize.set(1024, 1024);
+  mainLight.shadow.camera.left = -12;
+  mainLight.shadow.camera.right = 12;
+  mainLight.shadow.camera.top = 15;
+  mainLight.shadow.camera.bottom = -15;
   scene.add(mainLight);
 
   const rimLight = new THREE.DirectionalLight(0x40c463, 0.3);
-  rimLight.position.set(-15, 5, -10);
+  rimLight.position.set(-8, 5, -10);
   scene.add(rimLight);
 
-  const bottomLight = new THREE.PointLight(0x58a6ff, 0.4, 60);
+  const bottomLight = new THREE.PointLight(0x58a6ff, 0.4, 40);
   bottomLight.position.set(0, PADDLE_Y - 2, 5);
   scene.add(bottomLight);
 
   // ─── Playing Field ──────────────────────────────────────────
   // Floor
-  const floorGeo = new THREE.PlaneGeometry(FIELD_W + 10, FIELD_H + 12);
+  const floorGeo = new THREE.PlaneGeometry(FIELD_W + 6, FIELD_H + 8);
   const floorMat = new THREE.MeshStandardMaterial({
     color: 0x0d1117,
     roughness: 0.9,
@@ -134,7 +134,7 @@
   scene.add(floor);
 
   // Subtle grid on floor
-  const gridHelper = new THREE.GridHelper(60, 40, 0x161b22, 0x161b22);
+  const gridHelper = new THREE.GridHelper(40, 30, 0x161b22, 0x161b22);
   gridHelper.rotation.x = Math.PI / 2;
   gridHelper.position.z = -0.45;
   scene.add(gridHelper);
@@ -165,15 +165,15 @@
   const blocks = [];
   const blockGeo = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_DEPTH);
 
-  // Personal contribution data for Pamindu-Dasun
+  // Last 3 months (13 weeks) for Pamindu-Dasun
   const PAMINDU_DATA = [
-    "00000000000000000000000000000000000000000000000000000",
-    "00000000000000000000000000100000000000000000000000000",
-    "00000000000000000000000000000000000000000000002141000",
-    "00000000000000000000000000000000000000000000000000000",
-    "00000000000000000000000000000000000000000000000000002",
-    "00000000000000000000000000000000010000000000001000000",
-    "00000000000000000000000000000000010000000000000000002"
+    "0000000000000",
+    "0000000000000",
+    "0000000002141",
+    "0000000000000",
+    "0000000000002",
+    "0000000100000",
+    "0000000000002"
   ].map(row => row.split('').map(Number));
 
   function generateCommitData() {
